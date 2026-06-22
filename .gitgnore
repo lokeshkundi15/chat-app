@@ -1,12 +1,7 @@
+.DS_Store
+node_modules
+.tmp
+npm-debug.log
 .env
-.venv
-env/
-venv/
-ENV/
+env
 
-**pycache**/
-\*.pyc
-
-.streamlit/config.toml
-.chroma/
-chroma.sqlite3
