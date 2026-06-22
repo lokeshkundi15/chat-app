@@ -42,11 +42,17 @@ llm = ChatOpenAI(
     api_key=api_key
 )
 
-# 🎯 ఓపెన్ రూటర్ కోసం అథెంటికేషన్ బగ్ లేని పక్కా Embeddings కన్ఫిగరేషన్
+# 🎯 ఓపెన్ రూటర్ కోసం ఎర్రర్ రాని పక్కా Embeddings సెటప్
+# default_headers ని యాడ్ చేయడం ద్వారా ఓపెన్ రూటర్ మీ కీ ని పర్ఫెక్ట్ గా అంగీకరిస్తుంది
 embeddings = OpenAIEmbeddings(
     model="openai/text-embedding-3-small", 
-    openai_api_key=api_key,                 # 🎯 పారామీటర్ పేరు కచ్చితంగా 'openai_api_key' అయి ఉండాలి
-    openai_api_base="https://openrouter.ai/api/v1"
+    openai_api_key=api_key,
+    openai_api_base="https://openrouter.ai/api/v1",
+    default_headers={
+        "Authorization": f"Bearer {api_key}",
+        "HTTP-Referer": "https://streamlit.io",  # ఓపెన్ రూటర్ కి కావాల్సిన రిఫరర్
+        "X-Title": "Streamlit RAG Chatbot"
+    }
 )
 
 # historical messages and the latest user question
