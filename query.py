@@ -1,3 +1,4 @@
+# 🎯 లోకల్ కంప్యూటర్ మరియు క్లౌడ్ సర్వర్ రెండింటిలోనూ సేఫ్ గా రన్ అవ్వడానికి బైపాస్
 try:
     __import__('pysqlite3')
     import sys
@@ -17,7 +18,6 @@ logging.getLogger("langchain_text_splitters.character").setLevel(logging.ERROR)
 
 load_dotenv()
 
-
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough
@@ -28,7 +28,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 
-# 1. Models & Streamlit Secrets Setup
+# --- 1. Models & Streamlit Secrets Setup ---
 if "openai_api_key" in st.secrets:
     api_key = st.secrets["openai_api_key"]
 else:
@@ -42,11 +42,10 @@ llm = ChatOpenAI(
     api_key=api_key
 )
 
-# 🎯 అథెంటికేషన్ క్రాష్ అవ్వకుండా ఓపెన్ రూటర్ కోసం పక్కా Embeddings సెటప్
-# ఇక్కడ 'openai_api_key' మరియు 'openai_api_base' ని విడివిడిగా కరెక్ట్ పారామీటర్స్ లో ఇస్తున్నాం
+# 🎯 ఓపెన్ రూటర్ కోసం అథెంటికేషన్ బగ్ లేని పక్కా Embeddings కన్ఫిగరేషన్
 embeddings = OpenAIEmbeddings(
     model="openai/text-embedding-3-small", 
-    openai_api_key=api_key,
+    openai_api_key=api_key,                 # 🎯 పారామీటర్ పేరు కచ్చితంగా 'openai_api_key' అయి ఉండాలి
     openai_api_base="https://openrouter.ai/api/v1"
 )
 
@@ -114,10 +113,8 @@ def query(user_query):
     if "langchain_history" not in st.session_state:
         st.session_state.langchain_history = []
         
-
     response_text = generate_response(user_query, st.session_state.langchain_history)
     
-
     st.session_state.langchain_history.append(HumanMessage(content=user_query))
     st.session_state.langchain_history.append(AIMessage(content=response_text))
     
