@@ -29,7 +29,11 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 
 # 1. Models & Streamlit Secrets Setup
-api_key = st.secrets["openai_api_key"]
+if "openai_api_key" in st.secrets:
+    api_key = st.secrets["openai_api_key"]
+else:
+    api_key = os.getenv("OPENAI_API_KEY")
+
 
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1", 
@@ -37,10 +41,11 @@ llm = ChatOpenAI(
     temperature=0,
     api_key=api_key
 )
+
 embeddings = OpenAIEmbeddings(
-    model="openai/text-embedding-3-small",
-    openai_api_base="https://openrouter.ai/api/v1",
-    api_key=api_key
+    model="text-embedding-3-small",  
+    openai_api_key=api_key,          
+    openai_api_base="https://openrouter.ai/api/v1"
 )
 
 # historical messages and the latest user question
