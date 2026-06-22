@@ -41,14 +41,21 @@ def start_chat():
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generate response from Chat models
-        response = query(prompt)
-        
-        # message_placeholder.markdown(response)
+
         with st.chat_message("assistant"):
-            st.markdown(response["answer"])
+            with st.spinner("Thinking..."):
+                try:
+                    # Generate response from Chat models
+                    response = query(prompt)
+                    ai_response = response["answer"]
+                    
+                    st.markdown(ai_response)
+                except Exception as e:
+                    ai_response = f"⚠️ Error: {str(e)}"
+                    st.error(ai_response)
+        
         # Add assistant's response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response["answer"]})
+        st.session_state.messages.append({"role": "assistant", "content": ai_response})
 
 
 if __name__ == "__main__":

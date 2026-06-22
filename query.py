@@ -1,36 +1,53 @@
+
 __import__('pysqlite3')
 import sys
 import streamlit as st
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-from langchain.chains import create_retrieval_chain, create_history_aware_retriever
-from langchain_community.document_loaders import TextLoader
-from langchain_community.chat_models import ChatOpenAI
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_text_splitters import CharacterTextSplitter
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_community.vectorstores import Chroma
-from langchain_core.messages import HumanMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-from dotenv import load_dotenv
-import warnings
 import os
-warnings.filterwarnings("ignore")
+import warnings
+import logging
+from dotenv import load_dotenv
+
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+logging.getLogger("langchain_text_splitters.character").setLevel(logging.ERROR)
 
 load_dotenv()
 
-# https://python.langchain.com/v0.1/docs/use_cases/question_answering/chat_history/#chain-with-chat-history
 
+from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
-llm = ChatOpenAI(api_key=st.secrets["openai_api_key"])
-chat_history = []
+from langchain_community.document_loaders import TextLoader
+from langchain_community.vectorstores import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_text_splitters import CharacterTextSplitter
 
+# 1. Models & Streamlit Secrets Setup
 
-# historical messages and the latest user question, and reformulates the question if it makes reference to any information in the historical information
+api_key = st.secrets["openai_api_key"]
+
+llm = ChatOpenAI(
+    base_url="https://openrouter.ai/api/v1", 
+    model="openrouter/auto", 
+    temperature=0,
+    api_key=api_key
+)
+embeddings = OpenAIEmbeddings(
+    model="openai/text-embedding-3-small",
+    openai_api_base="https://openrouter.ai/api/v1",
+    api_key=api_key
+)
+
+# historical messages and the latest user question
 contextualize_q_system_prompt = """Given a chat history and the latest user question \
 which might reference context in the chat history, formulate a standalone question \
 which can be understood without the chat history. Do NOT answer the question, \
 just reformulate it if needed and otherwise return it as is."""
+
 contextualize_q_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", contextualize_q_system_prompt),
@@ -39,13 +56,15 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-# to build the full QA chain
+# build the full QA chain
 qa_system_prompt = """You are an assistant for question-answering tasks. \
 Use the following pieces of retrieved context to answer the question. \
 If you don't know the answer, just say that you don't know. \
-Use three sentences maximum and keep the answer concise.\
+Use three sentences maximum and keep the answer concise.
 
+Context:
 {context}"""
+
 qa_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", qa_system_prompt),
@@ -54,37 +73,44 @@ qa_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-documents = TextLoader("./docs/faq.txt").load()
-text_splitter = CharacterTextSplitter(chunk_size=100, chunk_overlap=0)
+# --- 2. Indexing (Data Setup - 100% Streamlit Cloud Safe) ---
+documents = TextLoader("./docs/faq.txt", encoding="utf-8").load()
+text_splitter = CharacterTextSplitter(chunk_size=200, chunk_overlap=0, separator="\n")
 splits = text_splitter.split_documents(documents)
-vectorstore = Chroma.from_documents(splits, OpenAIEmbeddings(api_key=st.secrets["openai_api_key"]))
-retriever = vectorstore.as_retriever()
 
-# Retrieve and generate using the relevant snippets of the blog.
-question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+db = Chroma.from_documents(splits, embeddings)
+retriever = db.as_retriever(search_kwargs={"k": 1})
 
-history_aware_retriever = create_history_aware_retriever(
-    llm, retriever, contextualize_q_prompt
+# --- 3. Pure LCEL Pipeline 
+contextualize_chain = contextualize_q_prompt | llm | StrOutputParser()
+
+rag_chain = (
+    RunnablePassthrough.assign(
+        context=lambda x: retriever.invoke(
+            contextualize_chain.invoke({"input": x["input"], "chat_history": x["chat_history"]})
+            if x["chat_history"] else x["input"]
+        )
+    )
+    | qa_prompt
+    | llm
+    | StrOutputParser()
 )
 
-question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+
+def generate_response(query_text, history_list):
+    ai_response = rag_chain.invoke({"input": query_text, "chat_history": history_list})
+    return ai_response
 
 
-def generate_response(query):
-    """ Generate a response to a user query"""
-    rag_chain = create_retrieval_chain(
-        history_aware_retriever,
-        question_answer_chain
-        )
+def query(user_query):
+    if "langchain_history" not in st.session_state:
+        st.session_state.langchain_history = []
+        
+
+    response_text = generate_response(user_query, st.session_state.langchain_history)
     
-    return rag_chain.invoke({
-        "input": query, 
-        "chat_history": chat_history})
 
-
-def query(query):
-    response = generate_response(query)
-    # add this line to add to chat history
-    chat_history.extend([HumanMessage(content=query), response["answer"]])
-    print("history", response["chat_history"])
-    return response
+    st.session_state.langchain_history.append(HumanMessage(content=user_query))
+    st.session_state.langchain_history.append(AIMessage(content=response_text))
+    
+    return {"answer": response_text}

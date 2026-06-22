@@ -1,3 +1,4 @@
+import sys  
 from colorama import Fore
 from query import query 
 
@@ -17,7 +18,7 @@ def start():
         ask()
     elif choice == "2":
         print("Goodbye!")
-        exit()
+        sys.exit()  
     else:
         print("Invalid choice")
         start()
@@ -26,15 +27,25 @@ def start():
 def ask():
     while True:
         user_input = input("Q: ")
-        # Exit
-        if user_input == "x":
+        
+        if user_input.lower() == "x":
             start()
-        else:
+            break 
+        
+        if not user_input.strip():
+            continue
 
+        try:
+            
             response = query(user_input)
+
+            
             print(Fore.BLUE + "A: " + response["answer"] + Fore.RESET)
             print(Fore.WHITE + 
                   "\n-------------------------------------------------")
+        except Exception as e:
+           
+            print(Fore.RED + f"Error: {e}" + Fore.RESET)
 
 
 if __name__ == "__main__":
