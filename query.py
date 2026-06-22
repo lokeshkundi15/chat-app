@@ -34,7 +34,7 @@ if "openai_api_key" in st.secrets:
 else:
     api_key = os.getenv("OPENAI_API_KEY")
 
-
+# LLM కన్ఫిగరేషన్ (ఓపెన్ రూటర్ కోసం)
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1", 
     model="openrouter/auto", 
@@ -42,9 +42,11 @@ llm = ChatOpenAI(
     api_key=api_key
 )
 
+# 🎯 అథెంటికేషన్ క్రాష్ అవ్వకుండా ఓపెన్ రూటర్ కోసం పక్కా Embeddings సెటప్
+# ఇక్కడ 'openai_api_key' మరియు 'openai_api_base' ని విడివిడిగా కరెక్ట్ పారామీటర్స్ లో ఇస్తున్నాం
 embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small",  
-    openai_api_key=api_key,          
+    model="openai/text-embedding-3-small", 
+    openai_api_key=api_key,
     openai_api_base="https://openrouter.ai/api/v1"
 )
 
