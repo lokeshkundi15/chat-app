@@ -11,3 +11,4 @@ tiktoken>=0.7.0
 streamlit>=1.24.0
 streamlit-chat>=0.1.1
 pysqlite3-binary
+sentence-transformers

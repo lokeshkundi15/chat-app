@@ -1,4 +1,3 @@
-# 🎯 లోకల్ కంప్యూటర్ మరియు క్లౌడ్ సర్వర్ రెండింటిలోనూ సేఫ్ గా రన్ అవ్వడానికి బైపాస్
 try:
     __import__('pysqlite3')
     import sys
@@ -25,8 +24,11 @@ from langchain_core.output_parsers import StrOutputParser
 
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 from langchain_text_splitters import CharacterTextSplitter
+
+# 🎯 ఉచిత మరియు API Key అవసరం లేని Hugging Face Embeddings వాడబోతున్నాం
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # --- 1. Models & Streamlit Secrets Setup ---
 if "openai_api_key" in st.secrets:
@@ -42,18 +44,9 @@ llm = ChatOpenAI(
     api_key=api_key
 )
 
-# 🎯 ఓపెన్ రూటర్ కోసం ఎర్రర్ రాని పక్కా Embeddings సెటప్
-# default_headers ని యాడ్ చేయడం ద్వారా ఓపెన్ రూటర్ మీ కీ ని పర్ఫెక్ట్ గా అంగీకరిస్తుంది
-embeddings = OpenAIEmbeddings(
-    model="openai/text-embedding-3-small", 
-    openai_api_key=api_key,
-    openai_api_base="https://openrouter.ai/api/v1",
-    default_headers={
-        "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": "https://streamlit.io",  # ఓపెన్ రూటర్ కి కావాల్సిన రిఫరర్
-        "X-Title": "Streamlit RAG Chatbot"
-    }
-)
+# 🎯 అథెంటికేషన్ ఎర్రర్స్ ని 100% ఆపడానికి ఓపెన్ రూటర్ కి బదులుగా ఆల్టర్నేటివ్ సెటప్
+# ఈ మోడల్ చాలా చిన్నది, ఫాస్ట్ గా ఉంటుంది మరియు సర్వర్ లో ఫ్రీ గా రన్ అవుతుంది
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # historical messages and the latest user question
 contextualize_q_system_prompt = """Given a chat history and the latest user question \
@@ -86,7 +79,7 @@ qa_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-# --- 2. Indexing (Data Setup - 100% Streamlit Cloud Safe) ---
+# --- 2. Indexing (Data Setup) ---
 documents = TextLoader("./docs/faq.txt", encoding="utf-8").load()
 text_splitter = CharacterTextSplitter(chunk_size=200, chunk_overlap=0, separator="\n")
 splits = text_splitter.split_documents(documents)
