@@ -1,14 +1,16 @@
-
-__import__('pysqlite3')
-import sys
-import streamlit as st
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+try:
+    __import__('pysqlite3')
+    import sys
+    import streamlit as st  
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    import streamlit as st  
+    pass
 
 import os
 import warnings
 import logging
 from dotenv import load_dotenv
-
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 logging.getLogger("langchain_text_splitters.character").setLevel(logging.ERROR)
@@ -27,7 +29,6 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 
 # 1. Models & Streamlit Secrets Setup
-
 api_key = st.secrets["openai_api_key"]
 
 llm = ChatOpenAI(
