@@ -27,7 +27,6 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import CharacterTextSplitter
 
-# 🎯 ఉచిత మరియు API Key అవసరం లేని Hugging Face Embeddings వాడబోతున్నాం
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # --- 1. Models & Streamlit Secrets Setup ---
@@ -36,7 +35,7 @@ if "openai_api_key" in st.secrets:
 else:
     api_key = os.getenv("OPENAI_API_KEY")
 
-# LLM కన్ఫిగరేషన్ (ఓపెన్ రూటర్ కోసం)
+
 llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1", 
     model="openrouter/auto", 
@@ -44,8 +43,7 @@ llm = ChatOpenAI(
     api_key=api_key
 )
 
-# 🎯 అథెంటికేషన్ ఎర్రర్స్ ని 100% ఆపడానికి ఓపెన్ రూటర్ కి బదులుగా ఆల్టర్నేటివ్ సెటప్
-# ఈ మోడల్ చాలా చిన్నది, ఫాస్ట్ గా ఉంటుంది మరియు సర్వర్ లో ఫ్రీ గా రన్ అవుతుంది
+
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # historical messages and the latest user question
