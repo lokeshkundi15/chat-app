@@ -1,0 +1,12 @@
+.env
+.venv
+env/
+venv/
+ENV/
+
+**pycache**/
+\*.pyc
+
+.streamlit/config.toml
+.chroma/
+chroma.sqlite3
